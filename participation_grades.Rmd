@@ -1,0 +1,155 @@
+---
+title: "Participation_Grades"
+author: "Lauren Mabe"
+date: "6/7/2021"
+output: 
+  html_document:
+    theme: journal
+    toc: true
+    toc_float: true
+    toc_depth: 2
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This file will count the number of chats each student's name is found in.  
+It will NOT count the number of times they chatted, only if they were there or not  
+
+All files are saved in the same folder, this is specified by mypath variable  
+- all chats are .txt files called meeting_saved_chat#.txt  
+- Class roster is .csv downloaded directly from Canvas, it has all students and all grades
+
+Run each chunk once, result will be saved as .csv in the attendance folder 
+
+IMPORTANT NOTE: This is not perfect and the chats should be manually reviewed before entering grades  
+Known issues:  
+- Students with the same last name will be counted twice, will need to be manually fixed after  
+- Students whose last names on Canvas and in Zoom dont match will not be counted 
+- Students w/ more than 1 last name (Ex: Yeon Chu Paek) will not be counted. Hyphenated last names will be counted  
+
+Basically, anyone w/ 0 attendance should be double checked  
+
+# Load data
+## Class Roster  
+This is the entire gradebook downloaded from Canvas. It should be moved to the attendance folder and can be renamed  
+Section names should exactly match the csv
+```{r}
+
+
+mypath <- "C:/Users/Lauren Mabe/Documents/Z_Old_Classes/TA_AMS_55/attendance/"
+
+# entire canvas gradebook (I renamed it)
+roster <- read.csv(paste0(mypath, "all_students_canvas.csv"))
+
+# get only students from my sections
+roster <- roster[roster$Section %in% c("AMS 055 A01 SQ 2021", "AMS 055 A02 SQ 2021",
+                                        "FST 055 A01 SQ 2021", "FST 055 A02 SQ 2021"), 
+                     which(names(roster) %in% c("Student", "Section"))]
+
+
+# split the student name column w/ strsplit(),
+# t() & as.data.frame() turn to df, [,1] grabs last name column
+roster$last_name <- t(as.data.frame(strsplit(roster$Student, ","), fix.empty.names = FALSE))[,1]
+
+# this is part of the merge
+roster$present <- 0
+
+
+head(roster)
+
+```
+
+## Zoom Chats
+Zoom chats are saved in the attendance folder and are simply named "meeting_saved_chat#" and numbered 1:x  
+This chunk separates each line of the txt file, pulling out the "From Student Name" portion of the chat line  
+From there, it separates again and grabs the last name.  
+If the student put multiple things in the chat, their name is still only counted once  
+```{r}
+
+chats <- list()
+
+# loop through folder, make list of text files
+for (i in 1:18) {
+    
+    # read chat txt file
+    txtfile <- read.delim(paste0(mypath, "meeting_saved_chat", i, ".txt"), header = FALSE)
+    
+    # clean the text file up
+    # there are better ways to do this, but I wanted to use base R
+    # even then, still might be better ways to avoid lists w/in lists, but oh well lol
+    
+    
+    # get only second column (chat column), becomes a vector
+    txtfile <- txtfile[,2]
+    
+    # separate each line where the : is
+    # "From Student Name :" the chat message
+    # returns each line as list of strings
+    txtfile <- sapply(txtfile, strsplit, split = " : ", USE.NAMES = FALSE)
+    
+    # get the "From Student Name" portion. Its first part of vector
+    txtfile <- lapply(1:length(txtfile), function(x) txtfile[[x]][1])
+    
+    # split that again by the spaces. There are multiple spaces in some places
+    # returns a list again
+    txtfile <- lapply(txtfile, strsplit, split = " ")
+    
+    # create a df of last names
+    # sapply returns vector
+    # it grabs the name in the 5th postition of the vector
+    # unique gets each student only once
+    txtfile <- data.frame(last_name = unique(sapply(1:length(txtfile), function(x) txtfile[[x]][[1]][5])))
+
+    
+    # this column gets attached to the roster df in next chunk
+    txtfile$present <- 1
+    
+    # cleaned text file added to the chats list
+    chats[[i]] <- txtfile
+    
+    
+    
+} # close for loop
+
+
+chats[[1]]
+
+
+
+
+```
+
+# Calculate Participation
+```{r}
+
+# loop through chats
+# merge the chat to the main roster df
+# will create new columns named "present.x" or "present.y". Same colnames is fine, ignore warning
+for (i in chats) {
+    
+    roster <- merge(roster, i, by = "last_name", all.x = TRUE,)
+    
+} # close for loop
+
+# add "present" columns together. 
+roster$num_present <- rowSums(roster[,4:ncol(roster)], na.rm = TRUE)
+
+
+
+head(roster)
+
+
+```
+
+# Save participation file
+Saves to same place as the rest is saved
+```{r}
+
+# does not save the "present" columns
+write.csv(roster[,c(1:3, ncol(roster))], paste0(mypath, "Participation_Grades.csv"))
+
+```
+
+
