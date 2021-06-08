@@ -17,8 +17,8 @@ This code will record about 75% of the students correctly, however, due to these
 
 To use: 
 1) all meeting chats should be saved in the attendance folder with as a .txt file titled "meeting_saved_chat#" with each file numbered consequetively from 1:n
-2) download the gradebook from Canvas, save in the attendance folder, give it an easier to type name
-3) In the R code: change mypath variable to file path of attendance folder (chunk 1, line 1)
-4) change code for variable roster to name of the gradebook csv (chunk 1, line 2)
-5) change sections names to your sections (chunk 1, line 3)
+2) download the gradebook from Canvas, save in the attendance folder, give it an easier-to-type name
+3) In the R code: (chunk 1, line 1) change "mypath" variable to file path of attendance folder 
+4) (chunk 1, line 2) change code for variable "roster" to name of the gradebook csv 
+5) (chunk 1, line 3) change sections names to your sections 
 6) Run each code chunk once, the final chunk saves the result as a csv in the attendance folder. 
